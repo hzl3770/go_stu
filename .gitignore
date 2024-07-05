@@ -1,0 +1,6 @@
+*.log
+vendor
+.idea
+tmp/
+.vscode/
+__debug_bin
