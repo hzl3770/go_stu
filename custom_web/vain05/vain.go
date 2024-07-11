@@ -10,13 +10,24 @@ Engine掌管整个生命周期
 Run启动
 */
 type Engine struct {
-	router
+	*RouterGroup
+
+	router router
+
+	groups []*RouterGroup
 }
 
 func New() *Engine {
-	return &Engine{
+	e := &Engine{
 		router: newDefaultRouter(),
 	}
+
+	e.RouterGroup = &RouterGroup{
+		engine:   e,
+		basePath: "/",
+	}
+
+	return e
 }
 
 func (e *Engine) Run(addr string) error {
@@ -29,5 +40,5 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.Request = r
 	fmt.Printf("url: %#v", r.URL)
 	fmt.Printf("engine: %+v", e)
-	e.route(ctx)
+	e.router.route(ctx)
 }

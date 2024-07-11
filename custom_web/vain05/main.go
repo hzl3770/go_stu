@@ -21,5 +21,14 @@ func main() {
 		ctx.JSON(http.StatusOK, h)
 	})
 
+	ydx := e.Group("/ydx")
+	{
+		ydx.GET("/sb", func(c *Context) {
+			c.JSON(http.StatusOK, H{
+				"sb": "ydx",
+			})
+		})
+	}
+
 	log.Fatal(e.Run(":9901"))
 }

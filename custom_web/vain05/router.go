@@ -41,14 +41,6 @@ func (r *router) makeRouteKey(method string, pattern string) string {
 	return method + "-" + pattern
 }
 
-func (r *router) GET(pattern string, handlerFunc HandlerFunc) {
-	r.addRoute(http.MethodGet, pattern, handlerFunc)
-}
-
-func (r *router) POST(pattern string, handlerFunc HandlerFunc) {
-	r.addRoute(http.MethodPost, pattern, handlerFunc)
-}
-
 func (r *router) route(c *Context) {
 	k := r.makeRouteKey(c.Method, c.Path)
 	fmt.Printf("k %v", k)
