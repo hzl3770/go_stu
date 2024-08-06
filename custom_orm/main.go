@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"go_stu/custom_orm/vaingorm"
+	"go_stu/custom_orm/vainorm"
 	"log"
 )
 
@@ -12,7 +12,7 @@ func main() {
 	//origin()
 	dsn := "root:root008@@tcp(127.0.0.1:3306)/?charset=utf8mb4&parseTime=True"
 
-	engine, err := vaingorm.NewEngine("mysql", dsn)
+	engine, err := vainorm.NewEngine("mysql", dsn)
 	if err != nil {
 		log.Println(err)
 		return

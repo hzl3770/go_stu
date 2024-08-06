@@ -1,13 +1,15 @@
-package vaingorm
+package vainorm
 
 import (
 	"database/sql"
-	"go_stu/custom_orm/vaingorm/log"
-	"go_stu/custom_orm/vaingorm/session"
+	"go_stu/custom_orm/vainorm/dialect"
+	"go_stu/custom_orm/vainorm/log"
+	"go_stu/custom_orm/vainorm/session"
 )
 
 type Engine struct {
-	db *sql.DB
+	db      *sql.DB
+	dialect dialect.Dialect
 }
 
 func NewEngine(driverName, dataSourceName string) (*Engine, error) {
@@ -22,7 +24,13 @@ func NewEngine(driverName, dataSourceName string) (*Engine, error) {
 		return nil, err
 	}
 
-	e := &Engine{db: db}
+	dial, ok := dialect.GetDialect(driverName)
+	if !ok {
+		log.Errorf("Dialect Not Found: %s", driverName)
+		return nil, err
+	}
+
+	e := &Engine{db: db, dialect: dial}
 	log.Infof("Connect database success")
 	return e, nil
 }
@@ -35,5 +43,5 @@ func (e *Engine) Close() {
 }
 
 func (e *Engine) NewSession() *session.Session {
-	return session.New(e.db)
+	return session.New(e.db, e.dialect)
 }
