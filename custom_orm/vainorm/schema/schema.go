@@ -13,8 +13,10 @@ type Field struct {
 }
 
 type Schema struct {
+	// 映射的对象
 	Model interface{}
-	Name  string
+	// 表名
+	Name string
 
 	Fields     []*Field
 	FieldNames []string
@@ -26,6 +28,7 @@ func (s *Schema) GetField(name string) *Field {
 }
 
 func Parse(dest interface{}, d dialect.Dialect) *Schema {
+
 	t := reflect.Indirect(reflect.ValueOf(dest)).Type()
 	schema := &Schema{
 		Model:    dest,
