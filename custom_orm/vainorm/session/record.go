@@ -1,6 +1,7 @@
 package session
 
 import (
+	"errors"
 	"go_stu/custom_orm/vainorm/clause"
 	"reflect"
 )
@@ -62,4 +63,81 @@ func (s *Session) Find(values interface{}) error {
 	}
 
 	return rows.Close()
+}
+
+func (s *Session) Update(kv ...any) (int64, error) {
+	m, ok := kv[0].(map[string]interface{})
+	if !ok {
+		m = make(map[string]interface{})
+		for i := 0; i < len(kv); i += 2 {
+			m[kv[i].(string)] = kv[i+1]
+		}
+	}
+
+	s.clause.Set(clause.UPDATE, s.RefTable().Name, m)
+
+	sql, vars := s.clause.Build(clause.UPDATE, clause.WHERE)
+	result, err := s.Raw(sql, vars...).Exec()
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
+}
+
+func (s *Session) Delete() (int64, error) {
+	s.clause.Set(clause.DELETE, s.RefTable().Name)
+	sql, vars := s.clause.Build(clause.DELETE, clause.WHERE)
+	result, err := s.Raw(sql, vars...).Exec()
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
+}
+
+func (s *Session) Count() (int64, error) {
+	s.clause.Set(clause.COUNT, s.RefTable().Name)
+	sql, vars := s.clause.Build(clause.COUNT, clause.WHERE)
+	row := s.Raw(sql, vars...).QueryRow()
+	var count int64
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (s *Session) Limit(num int) *Session {
+	s.clause.Set(clause.LIMIT, num)
+	return s
+}
+
+func (s *Session) Where(desc string, args ...any) *Session {
+	var vars []interface{}
+	s.clause.Set(clause.WHERE, append(append(vars, desc), args...)...)
+	return s
+}
+
+func (s *Session) OrderBy(order string) *Session {
+	s.clause.Set(clause.ORDERBY, order)
+	return s
+}
+
+var ErrRecordNotFound = errors.New("record not found")
+
+func (s *Session) First(value any) error {
+	dest := reflect.Indirect(reflect.ValueOf(value))
+	destSlice := reflect.New(reflect.SliceOf(dest.Type())).Elem()
+
+	if err := s.Limit(1).Find(destSlice.Addr().Interface()); err != nil {
+		return err
+	}
+
+	if destSlice.Len() == 0 {
+		return ErrRecordNotFound
+	}
+
+	dest.Set(destSlice.Index(0))
+	return nil
 }
