@@ -2,11 +2,10 @@ package session
 
 import (
 	"database/sql"
-	"fmt"
+	"go_stu/custom_orm/vainorm/clause"
 	"go_stu/custom_orm/vainorm/dialect"
 	"go_stu/custom_orm/vainorm/log"
 	"go_stu/custom_orm/vainorm/schema"
-	"reflect"
 	"strings"
 )
 
@@ -15,8 +14,13 @@ type Session struct {
 	sql     strings.Builder
 	sqlVars []interface{}
 
-	dialect  dialect.Dialect
+	dialect dialect.Dialect
+
+	// 对应的表结构
 	refTable *schema.Schema
+
+	// 操作的语句
+	clause clause.Clause
 }
 
 func New(db *sql.DB, dialect dialect.Dialect) *Session {
@@ -26,6 +30,7 @@ func New(db *sql.DB, dialect dialect.Dialect) *Session {
 func (s *Session) Clear() {
 	s.sql.Reset()
 	s.sqlVars = nil
+	s.clause = clause.Clause{}
 }
 
 func (s *Session) DB() *sql.DB {
@@ -46,6 +51,7 @@ func (s *Session) Exec() (sql.Result, error) {
 	result, err := s.db.Exec(s.sql.String(), s.sqlVars...)
 	if err != nil {
 		log.Error(err)
+
 		return nil, err
 	}
 	return result, nil
@@ -68,42 +74,4 @@ func (s *Session) QueryRows() (*sql.Rows, error) {
 		return nil, err
 	}
 	return rows, nil
-}
-
-func (s *Session) Model(value interface{}) *Session {
-	if s.refTable == nil || reflect.TypeOf(value) != reflect.TypeOf(s.refTable.Model) {
-		s.refTable = schema.Parse(value, s.dialect)
-	}
-	return s
-}
-
-func (s *Session) RefTable() *schema.Schema {
-	if s.refTable == nil {
-		log.Error("Model is not set")
-	}
-	return s.refTable
-}
-
-func (s *Session) CreateTable() error {
-	table := s.RefTable()
-	var columns []string
-	for _, field := range table.Fields {
-		columns = append(columns, fmt.Sprintf("%s %s %s", field.Name, field.Type, field.Tag))
-	}
-	desc := strings.Join(columns, ",")
-	_, err := s.Raw("CREATE TABLE ?(?)", table.Name, desc).Exec()
-	return err
-}
-
-func (s *Session) DropTable() error {
-	_, err := s.Raw("DROP TABLE IF EXISTS ?", s.RefTable().Name).Exec()
-	return err
-}
-
-func (s *Session) HasTable() bool {
-	sql, vars := s.dialect.TableExistSQL(s.RefTable().Name)
-	row := s.Raw(sql, vars...).QueryRow()
-	var tableName string
-	_ = row.Scan(&tableName)
-	return tableName == s.RefTable().Name
 }

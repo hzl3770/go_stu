@@ -16,6 +16,7 @@ func init() {
 	generators[SELECT] = _select
 	generators[LIMIT] = _limit
 	generators[WHERE] = _where
+	generators[ORDERBY] = _orderBy
 }
 
 func genBindVars(num int) string {
@@ -33,9 +34,46 @@ func genBindVars(num int) string {
 func _insert(values ...interface{}) (string, []interface{}) {
 	tableName := values[0]
 	fields := strings.Join(values[1].([]string), ",")
-	return fmt.Sprintf("INSERT INTO %s (%v)", tableName, fields), []interface{}{}
+	return fmt.Sprintf("INSERT INTO %s (%s)", tableName, fields), []interface{}{}
 }
 
 func _values(values ...interface{}) (string, []interface{}) {
+	var bindStr string
+	var sql strings.Builder
+	var vars []any
+	sql.WriteString("VALUES ")
 
+	for i, value := range values {
+		v := value.([]interface{})
+		if i == 0 {
+			bindStr = genBindVars(len(v))
+		}
+		sql.WriteString(fmt.Sprintf("(%v)", bindStr))
+		if i+1 < len(values) {
+			sql.WriteString(", ")
+		}
+		vars = append(vars, v...)
+	}
+
+	return sql.String(), vars
+}
+
+func _select(values ...interface{}) (string, []interface{}) {
+	tableName := values[0]
+	fields := strings.Join(values[1].([]string), ",")
+	return fmt.Sprintf("SELECT %v FROM %s", fields, tableName), []interface{}{}
+}
+
+func _limit(values ...interface{}) (string, []interface{}) {
+	return "LIMIT ?", values
+}
+
+func _where(values ...interface{}) (string, []interface{}) {
+	// WHERE $desc
+	desc, vars := values[0], values[1:]
+	return fmt.Sprintf("WHERE %s", desc), vars
+}
+
+func _orderBy(values ...interface{}) (string, []interface{}) {
+	return fmt.Sprintf("ORDER BY %s", values[0]), []interface{}{}
 }
