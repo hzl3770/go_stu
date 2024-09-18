@@ -19,6 +19,7 @@ func (s *Session) Insert(values ...any) (int64, error) {
 	// [[v1], [v2]]
 	recordValues := make([]interface{}, 0)
 	for _, v := range values {
+		s.CallMethod(BeforeInsert, v)
 		recordValues = append(recordValues, table.RecordValues(v))
 	}
 
@@ -31,10 +32,12 @@ func (s *Session) Insert(values ...any) (int64, error) {
 		return 0, err
 	}
 
+	s.CallMethod(AfterInsert, nil)
 	return exec.RowsAffected()
 }
 
 func (s *Session) Find(values interface{}) error {
+	s.CallMethod(BeforeQuery, nil)
 	// 获取slice的元素类型
 	destSlice := reflect.Indirect(reflect.ValueOf(values))
 	destType := destSlice.Type().Elem()
@@ -59,6 +62,7 @@ func (s *Session) Find(values interface{}) error {
 			return err
 		}
 
+		s.CallMethod(AfterQuery, dest.Addr().Interface())
 		destSlice.Set(reflect.Append(destSlice, dest))
 	}
 
@@ -66,6 +70,7 @@ func (s *Session) Find(values interface{}) error {
 }
 
 func (s *Session) Update(kv ...any) (int64, error) {
+	s.CallMethod(BeforeUpdate, nil)
 	m, ok := kv[0].(map[string]interface{})
 	if !ok {
 		m = make(map[string]interface{})
@@ -82,10 +87,14 @@ func (s *Session) Update(kv ...any) (int64, error) {
 		return 0, err
 	}
 
+	s.CallMethod(AfterUpdate, nil)
+
 	return result.RowsAffected()
 }
 
 func (s *Session) Delete() (int64, error) {
+	s.CallMethod(BeforeDelete, nil)
+
 	s.clause.Set(clause.DELETE, s.RefTable().Name)
 	sql, vars := s.clause.Build(clause.DELETE, clause.WHERE)
 	result, err := s.Raw(sql, vars...).Exec()
@@ -93,6 +102,7 @@ func (s *Session) Delete() (int64, error) {
 		return 0, err
 	}
 
+	s.CallMethod(AfterDelete, nil)
 	return result.RowsAffected()
 }
 
