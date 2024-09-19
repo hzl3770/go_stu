@@ -3,7 +3,7 @@ package session
 import "testing"
 
 type User struct {
-	Name string `geeorm:"PRIMARY KEY"`
+	Name string `vainorm:"PRIMARY KEY"`
 	Age  int
 }
 
