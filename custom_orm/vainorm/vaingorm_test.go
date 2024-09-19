@@ -28,17 +28,25 @@ type User struct {
 	Age  int
 }
 
+// 在MySQL中，执行DDL（数据定义语言）语句时，事务会自动提交。
+// 这意味着在事务中执行的任何DDL操作都会立即提交，而不会被回滚。
 func transactionRollback(t *testing.T) {
 	engine := OpenDB(t)
 	defer engine.Close()
 	s := engine.NewSession()
 	_ = s.Model(&User{}).DropTable()
+	_ = s.Model(&User{}).CreateTable()
+
 	_, err := engine.Transaction(func(s *session.Session) (result interface{}, err error) {
-		_ = s.Model(&User{}).CreateTable()
-		_, err = s.Insert(&User{"Tom", 18})
+		_, err = s.Insert(&User{"sbydx", 10})
 		return nil, errors.New("Error")
 	})
-	if err == nil || s.HasTable() {
+
+	u := &User{}
+	_ = s.Where("Name = ? AND Age = ?", "sbydx", 10).First(u)
+
+	if err == nil || u.Name == "Tom" {
+		t.Logf("u: %v", u)
 		t.Fatal("failed to rollback")
 	}
 }
